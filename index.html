@@ -188,6 +188,14 @@
             const [expandedOrder, setExpandedOrder] = useState(null);
             const [showProductTotals, setShowProductTotals] = useState(false);
             const [showFulfillment, setShowFulfillment] = useState(false);
+            const [showReviewModal, setShowReviewModal] = useState(false);
+            const [reviewOrder, setReviewOrder] = useState(null);
+            const [reviewPhone, setReviewPhone] = useState('');
+            const [sendingReview, setSendingReview] = useState(false);
+            const [reviewSent, setReviewSent] = useState({});
+            
+            const ZAPIER_WEBHOOK_URL = 'https://hooks.zapier.com/hooks/catch/18465231/ukukv0k/'; // Zapier webhook for review requests
+            const GOOGLE_REVIEW_LINK = 'https://g.page/r/CYsNrNGwzgQIEBM/review';
             
             const [dayFilter, setDayFilter] = useState('all');
             const [platoonFilter, setPlatoonFilter] = useState('all');
@@ -216,7 +224,7 @@
                 return submissions.map(sub => {
                     const answers = sub.answers || {};
                     let name = '', platoon = '', drillSergeant = '', pictureDay = '',
-                        packages = [], buddyName = '', email = '', customRequest = '',
+                        packages = [], buddyName = '', email = '', phone = '', customRequest = '',
                         orderTotal = 0, graduationDate = '';
 
                     Object.keys(answers).forEach(key => {
@@ -233,6 +241,13 @@
                         }
                         else if (text.includes('Buddy')) buddyName = value;
                         else if (text.includes('Email')) email = value;
+                        else if (text.includes('Phone') || text.includes('phone') || text.includes('Mobile') || text.includes('mobile') || text.includes('Cell') || text.includes('cell')) {
+                            if (typeof value === 'object' && value.full) {
+                                phone = value.full;
+                            } else if (typeof value === 'string') {
+                                phone = value;
+                            }
+                        }
                         else if (text.includes('custom request')) customRequest = value;
                         else if (text.includes('Order Total')) orderTotal = parseFloat(value) || 0;
                         else if (text.includes('Graduate')) graduationDate = value;
@@ -260,6 +275,7 @@
                         packages: parsedPackages,
                         buddyName,
                         email,
+                        phone,
                         customRequest,
                         orderTotal: orderTotal || calculatedTotal,
                         subtotal,
@@ -337,6 +353,8 @@
             };
 
             const togglePaid = (orderId) => {
+                const wasUnpaid = !localData[orderId]?.paid;
+                
                 setLocalData(prev => ({
                     ...prev,
                     [orderId]: {
@@ -344,6 +362,60 @@
                         paid: !prev[orderId]?.paid
                     }
                 }));
+                
+                // If marking as paid (not unpaid), show review modal
+                if (wasUnpaid) {
+                    const order = orders.find(o => o.id === orderId);
+                    if (order && !reviewSent[orderId]) {
+                        setReviewOrder(order);
+                        setReviewPhone(order.phone || '');
+                        setShowReviewModal(true);
+                    }
+                }
+            };
+            
+            const sendReviewRequest = async () => {
+                if (!reviewPhone || !reviewOrder) return;
+                
+                setSendingReview(true);
+                
+                try {
+                    await fetch(ZAPIER_WEBHOOK_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            phone: reviewPhone,
+                            name: reviewOrder.name,
+                            reviewLink: GOOGLE_REVIEW_LINK,
+                            message: `Thank you for choosing PVME! We'd love your feedback: ${GOOGLE_REVIEW_LINK}`
+                        })
+                    });
+                    
+                    // Mark as sent
+                    setReviewSent(prev => ({
+                        ...prev,
+                        [reviewOrder.id]: true
+                    }));
+                    
+                    setShowReviewModal(false);
+                    setReviewOrder(null);
+                    setReviewPhone('');
+                    
+                    alert('Review request sent!');
+                } catch (error) {
+                    alert('Failed to send. Please try again.');
+                }
+                
+                setSendingReview(false);
+            };
+            
+            const skipReview = () => {
+                setShowReviewModal(false);
+                setReviewOrder(null);
+                setReviewPhone('');
             };
 
             const getPhotoNumber = (orderId, pkgCode) => {
@@ -939,6 +1011,85 @@
                                             ))}
                                         </div>
                                     ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Review Request Modal */}
+                    {showReviewModal && reviewOrder && (
+                        <div className="modal-overlay" onClick={skipReview}>
+                            <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '400px'}}>
+                                <div className="modal-header">
+                                    <div className="modal-title">⭐ Request Review</div>
+                                    <button className="modal-close" onClick={skipReview}>×</button>
+                                </div>
+                                <div className="modal-body">
+                                    <p style={{marginBottom: '16px', color: '#94a3b8'}}>
+                                        Send <strong style={{color: '#e2e8f0'}}>{reviewOrder.name}</strong> a text asking for a Google review?
+                                    </p>
+                                    
+                                    <label style={{display: 'block', marginBottom: '8px', fontSize: '12px', color: '#64748b', textTransform: 'uppercase'}}>
+                                        Phone Number
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        value={reviewPhone}
+                                        onChange={e => setReviewPhone(e.target.value)}
+                                        placeholder="(555) 123-4567"
+                                        style={{
+                                            width: '100%',
+                                            padding: '14px',
+                                            background: '#0f172a',
+                                            border: '2px solid #334155',
+                                            borderRadius: '8px',
+                                            color: '#fff',
+                                            fontSize: '18px',
+                                            textAlign: 'center',
+                                            marginBottom: '8px'
+                                        }}
+                                    />
+                                    
+                                    <p style={{fontSize: '12px', color: '#64748b', marginBottom: '20px'}}>
+                                        They'll receive: "Thank you for choosing PVME! We'd love your feedback: [link]"
+                                    </p>
+                                    
+                                    <div style={{display: 'flex', gap: '10px'}}>
+                                        <button
+                                            onClick={skipReview}
+                                            style={{
+                                                flex: 1,
+                                                padding: '14px',
+                                                background: '#334155',
+                                                color: '#94a3b8',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                fontSize: '14px',
+                                                fontWeight: '600',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Skip
+                                        </button>
+                                        <button
+                                            onClick={sendReviewRequest}
+                                            disabled={!reviewPhone || sendingReview}
+                                            style={{
+                                                flex: 2,
+                                                padding: '14px',
+                                                background: reviewPhone ? '#eab308' : '#334155',
+                                                color: reviewPhone ? '#0f172a' : '#64748b',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                fontSize: '14px',
+                                                fontWeight: '600',
+                                                cursor: reviewPhone ? 'pointer' : 'not-allowed',
+                                                opacity: sendingReview ? 0.7 : 1
+                                            }}
+                                        >
+                                            {sendingReview ? '⏳ Sending...' : '📱 Send Review Request'}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
