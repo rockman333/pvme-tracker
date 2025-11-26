@@ -276,7 +276,7 @@
                 
                 try {
                     const response = await fetch(
-                        `https://api.jotform.com/form/${CONFIG.formId}/submissions?apiKey=${CONFIG.apiKey}&limit=1000`
+                        `https://api.jotform.com/form/${CONFIG.formId}/submissions?apiKey=${CONFIG.apiKey}&limit=1000&filter=%7B%22status%22%3A%22ACTIVE%22%7D`
                     );
                     const data = await response.json();
                     
