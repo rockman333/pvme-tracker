@@ -27,7 +27,6 @@
             overflow-x: hidden;
         }
         
-        /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -48,6 +47,111 @@
             height: 24px;
             accent-color: #eab308;
         }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal {
+            background: #1e293b;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid #334155;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: #1e293b;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .modal-close {
+            background: #334155;
+            border: none;
+            color: #e2e8f0;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .product-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #334155;
+        }
+
+        .product-row:last-child {
+            border-bottom: none;
+        }
+
+        .product-name {
+            font-weight: 500;
+        }
+
+        .product-count {
+            font-weight: bold;
+            color: #eab308;
+            font-size: 18px;
+        }
+
+        .fulfillment-section {
+            margin-bottom: 24px;
+        }
+
+        .fulfillment-title {
+            font-size: 14px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #eab308;
+        }
+
+        .fulfillment-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #334155;
+            font-size: 14px;
+        }
+
+        .fulfillment-item:last-child {
+            border-bottom: none;
+        }
+
+        .fulfillment-photo {
+            color: #eab308;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -56,7 +160,6 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback } = React;
 
-        // ============ CONFIGURATION ============
         const CONFIG = {
             apiKey: 'af081af2c96a9cbb9b8e122986b113b5',
             formId: '253004946489061',
@@ -64,47 +167,46 @@
         };
 
         const PACKAGES = {
-            'A': { name: 'Package A', desc: '8×12 Class Group + 8×10 Individual', price: 25, needsPhoto: true },
-            'B': { name: 'Package B', desc: '8×12 Class Group', price: 20, needsPhoto: false },
-            'C': { name: 'Package C', desc: '8×10 Individual', price: 20, needsPhoto: true },
-            'D': { name: 'Package D', desc: '8×10 Buddy Shot', price: 20, needsPhoto: true },
-            'G1': { name: 'Package G1', desc: 'Mouse Pad', price: 15, needsPhoto: true },
-            'G2': { name: 'Package G2', desc: 'Phone Socket Grip', price: 15, needsPhoto: true },
-            'G3': { name: 'Package G3', desc: 'Dog Tag (Photo)', price: 15, needsPhoto: true },
-            'G4': { name: 'Package G4', desc: 'Bag Tag (3) Double-Sided', price: 30, needsPhoto: true },
-            'G5': { name: 'Package G5', desc: 'Bag Tag (1) Double-Sided', price: 12, needsPhoto: true },
-            'G6': { name: 'Package G6', desc: '11oz Mug (Full Wrap)', price: 15, needsPhoto: true },
-            'G7': { name: 'Package G7', desc: '14oz Deluxe Travel Mug', price: 30, needsPhoto: true }
+            'A': { name: 'Package A', desc: '8×12 Class Group + 8×10 Individual', price: 25, needsPhoto: true, products: ['Class Group 8x12', 'Individual 8x10'] },
+            'B': { name: 'Package B', desc: '8×12 Class Group', price: 20, needsPhoto: false, products: ['Class Group 8x12'] },
+            'C': { name: 'Package C', desc: '8×10 Individual', price: 20, needsPhoto: true, products: ['Individual 8x10'] },
+            'D': { name: 'Package D', desc: '8×10 Buddy Shot', price: 20, needsPhoto: true, products: ['Buddy Shot 8x10'] },
+            'G1': { name: 'Package G1', desc: 'Mouse Pad', price: 15, needsPhoto: true, products: ['Mouse Pad'] },
+            'G2': { name: 'Package G2', desc: 'Phone Socket Grip', price: 15, needsPhoto: true, products: ['Phone Socket Grip'] },
+            'G3': { name: 'Package G3', desc: 'Dog Tag (Photo)', price: 15, needsPhoto: true, products: ['Dog Tag'] },
+            'G4': { name: 'Package G4', desc: 'Bag Tag (3) Double-Sided', price: 30, needsPhoto: true, products: ['Bag Tag', 'Bag Tag', 'Bag Tag'] },
+            'G5': { name: 'Package G5', desc: 'Bag Tag (1) Double-Sided', price: 12, needsPhoto: true, products: ['Bag Tag'] },
+            'G6': { name: 'Package G6', desc: '11oz Mug (Full Wrap)', price: 15, needsPhoto: true, products: ['Mug 11oz'] },
+            'G7': { name: 'Package G7', desc: '14oz Deluxe Travel Mug', price: 30, needsPhoto: true, products: ['Travel Mug 14oz'] }
         };
 
-        // ============ MAIN APP ============
         function App() {
             const [orders, setOrders] = useState([]);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
             const [view, setView] = useState('shoot');
             const [expandedOrder, setExpandedOrder] = useState(null);
+            const [showProductTotals, setShowProductTotals] = useState(false);
+            const [showFulfillment, setShowFulfillment] = useState(false);
             
-            // Filters
             const [dayFilter, setDayFilter] = useState('all');
             const [platoonFilter, setPlatoonFilter] = useState('all');
             const [statusFilter, setStatusFilter] = useState('all');
+            const [paymentFilter, setPaymentFilter] = useState('all');
             const [searchQuery, setSearchQuery] = useState('');
             
-            // Local data persisted to localStorage
             const [localData, setLocalData] = useState(() => {
                 try {
-                    const saved = localStorage.getItem('pvme_tracker_data');
+                    const saved = localStorage.getItem('pvme_tracker_data_v2');
                     return saved ? JSON.parse(saved) : {};
                 } catch {
                     return {};
                 }
             });
 
-            // Save to localStorage whenever localData changes
             useEffect(() => {
                 try {
-                    localStorage.setItem('pvme_tracker_data', JSON.stringify(localData));
+                    localStorage.setItem('pvme_tracker_data_v2', JSON.stringify(localData));
                 } catch (e) {
                     console.error('Failed to save:', e);
                 }
@@ -195,13 +297,15 @@
                 loadOrders();
             }, []);
 
-            // Filter orders
             const filteredOrders = orders.filter(order => {
                 if (dayFilter !== 'all' && order.pictureDay !== dayFilter) return false;
                 if (platoonFilter !== 'all' && order.platoon !== platoonFilter) return false;
                 const isCompleted = localData[order.id]?.completed;
+                const isPaid = localData[order.id]?.paid;
                 if (statusFilter === 'pending' && isCompleted) return false;
                 if (statusFilter === 'completed' && !isCompleted) return false;
+                if (paymentFilter === 'paid' && !isPaid) return false;
+                if (paymentFilter === 'unpaid' && isPaid) return false;
                 if (searchQuery && !order.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
                 return true;
             }).sort((a, b) => a.name.localeCompare(b.name));
@@ -232,12 +336,67 @@
                 }));
             };
 
+            const togglePaid = (orderId) => {
+                setLocalData(prev => ({
+                    ...prev,
+                    [orderId]: {
+                        ...prev[orderId],
+                        paid: !prev[orderId]?.paid
+                    }
+                }));
+            };
+
             const getPhotoNumber = (orderId, pkgCode) => {
                 return localData[orderId]?.photoNumbers?.[pkgCode] || '';
             };
 
-            const isCompleted = (orderId) => {
-                return localData[orderId]?.completed || false;
+            const isCompleted = (orderId) => localData[orderId]?.completed || false;
+            const isPaid = (orderId) => localData[orderId]?.paid || false;
+
+            // Calculate product totals
+            const getProductTotals = () => {
+                const totals = {};
+                filteredOrders.forEach(order => {
+                    order.packages.forEach(pkg => {
+                        if (pkg.products) {
+                            pkg.products.forEach(product => {
+                                totals[product] = (totals[product] || 0) + 1;
+                            });
+                        }
+                    });
+                });
+                return totals;
+            };
+
+            // Generate fulfillment list by product
+            const getFulfillmentData = () => {
+                const byProduct = {};
+                
+                filteredOrders.forEach(order => {
+                    order.packages.forEach(pkg => {
+                        if (pkg.products) {
+                            const photoNum = getPhotoNumber(order.id, pkg.code);
+                            pkg.products.forEach(product => {
+                                if (!byProduct[product]) {
+                                    byProduct[product] = [];
+                                }
+                                byProduct[product].push({
+                                    name: order.name,
+                                    photoNumber: photoNum,
+                                    packageCode: pkg.code,
+                                    buddyName: pkg.code === 'D' ? order.buddyName : null
+                                });
+                            });
+                        }
+                    });
+                });
+
+                // Sort each product's list by name
+                Object.keys(byProduct).forEach(product => {
+                    byProduct[product].sort((a, b) => a.name.localeCompare(b.name));
+                });
+
+                return byProduct;
             };
 
             const stats = {
@@ -245,7 +404,11 @@
                 filtered: filteredOrders.length,
                 completed: filteredOrders.filter(o => isCompleted(o.id)).length,
                 pending: filteredOrders.filter(o => !isCompleted(o.id)).length,
-                revenue: filteredOrders.reduce((sum, o) => sum + o.orderTotal, 0)
+                revenue: filteredOrders.reduce((sum, o) => sum + o.orderTotal, 0),
+                collected: filteredOrders.filter(o => isPaid(o.id)).reduce((sum, o) => sum + o.orderTotal, 0),
+                outstanding: filteredOrders.filter(o => !isPaid(o.id)).reduce((sum, o) => sum + o.orderTotal, 0),
+                paidCount: filteredOrders.filter(o => isPaid(o.id)).length,
+                unpaidCount: filteredOrders.filter(o => !isPaid(o.id)).length
             };
 
             const exportCSV = () => {
@@ -261,12 +424,13 @@
                         photoNums,
                         o.orderTotal.toFixed(2),
                         isCompleted(o.id) ? 'Yes' : 'No',
+                        isPaid(o.id) ? 'Yes' : 'No',
                         o.buddyName,
                         o.email
                     ].map(v => `"${v || ''}"`).join(',');
                 });
                 
-                const csv = ['Name,Platoon,PictureDay,Packages,PhotoNumbers,Total,Completed,BuddyName,Email', ...rows].join('\n');
+                const csv = ['Name,Platoon,PictureDay,Packages,PhotoNumbers,Total,Completed,Paid,BuddyName,Email', ...rows].join('\n');
                 const blob = new Blob([csv], { type: 'text/csv' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -277,14 +441,33 @@
                 document.body.removeChild(a);
             };
 
+            const exportFulfillment = () => {
+                const fulfillment = getFulfillmentData();
+                let csv = 'Product,Name,Photo Number,Buddy Name\n';
+                
+                Object.keys(fulfillment).sort().forEach(product => {
+                    fulfillment[product].forEach(item => {
+                        csv += `"${product}","${item.name}","${item.photoNumber || ''}","${item.buddyName || ''}"\n`;
+                    });
+                });
+
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `pvme_fulfillment_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+
             const clearData = () => {
-                if (confirm('Clear all photo numbers and completion status? This cannot be undone.')) {
+                if (confirm('Clear all photo numbers, completion, and payment status? This cannot be undone.')) {
                     setLocalData({});
-                    localStorage.removeItem('pvme_tracker_data');
+                    localStorage.removeItem('pvme_tracker_data_v2');
                 }
             };
 
-            // Styles
             const styles = {
                 header: {
                     background: 'linear-gradient(135deg, #ca8a04 0%, #a16207 100%)',
@@ -294,28 +477,16 @@
                     top: 0,
                     zIndex: 100
                 },
-                title: {
-                    fontSize: '20px',
-                    fontWeight: 'bold',
-                    marginBottom: '4px'
-                },
-                subtitle: {
-                    fontSize: '12px',
-                    opacity: 0.8
-                },
-                btnGroup: {
-                    display: 'flex',
-                    gap: '8px',
-                    marginTop: '12px',
-                    flexWrap: 'wrap'
-                },
+                title: { fontSize: '20px', fontWeight: 'bold', marginBottom: '4px' },
+                subtitle: { fontSize: '12px', opacity: 0.8 },
+                btnGroup: { display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' },
                 btn: {
                     background: '#0f172a',
                     color: '#eab308',
                     border: 'none',
-                    padding: '10px 16px',
+                    padding: '10px 14px',
                     borderRadius: '8px',
-                    fontSize: '13px',
+                    fontSize: '12px',
                     fontWeight: '600',
                     cursor: 'pointer',
                     display: 'flex',
@@ -324,27 +495,18 @@
                 },
                 statsBar: {
                     display: 'flex',
-                    gap: '16px',
+                    gap: '12px',
                     padding: '12px 16px',
                     background: '#1e293b',
                     borderBottom: '1px solid #334155',
-                    overflowX: 'auto'
+                    overflowX: 'auto',
+                    flexWrap: 'wrap'
                 },
-                stat: {
-                    textAlign: 'center',
-                    minWidth: '60px'
-                },
-                statValue: {
-                    fontSize: '20px',
-                    fontWeight: 'bold',
-                    color: '#eab308'
-                },
-                statLabel: {
-                    fontSize: '10px',
-                    color: '#64748b',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                },
+                stat: { textAlign: 'center', minWidth: '55px' },
+                statValue: { fontSize: '18px', fontWeight: 'bold', color: '#eab308' },
+                statValueGreen: { fontSize: '18px', fontWeight: 'bold', color: '#22c55e' },
+                statValueRed: { fontSize: '18px', fontWeight: 'bold', color: '#ef4444' },
+                statLabel: { fontSize: '9px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' },
                 filters: {
                     padding: '12px 16px',
                     background: '#1e293b',
@@ -358,9 +520,9 @@
                     background: '#0f172a',
                     border: '1px solid #334155',
                     color: '#e2e8f0',
-                    padding: '8px 12px',
+                    padding: '8px 10px',
                     borderRadius: '6px',
-                    fontSize: '13px'
+                    fontSize: '12px'
                 },
                 searchInput: {
                     background: '#0f172a',
@@ -370,7 +532,7 @@
                     borderRadius: '6px',
                     fontSize: '13px',
                     flex: 1,
-                    minWidth: '120px'
+                    minWidth: '100px'
                 },
                 viewToggle: {
                     display: 'flex',
@@ -379,20 +541,15 @@
                     border: '1px solid #334155'
                 },
                 viewBtn: (active) => ({
-                    padding: '8px 14px',
+                    padding: '8px 12px',
                     background: active ? '#eab308' : '#0f172a',
                     color: active ? '#0f172a' : '#94a3b8',
                     border: 'none',
                     cursor: 'pointer',
-                    fontSize: '12px',
+                    fontSize: '11px',
                     fontWeight: '600'
                 }),
-                ordersList: {
-                    padding: '16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px'
-                },
+                ordersList: { padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' },
                 orderCard: (completed) => ({
                     background: '#1e293b',
                     borderRadius: '12px',
@@ -407,10 +564,7 @@
                     justifyContent: 'space-between',
                     alignItems: 'flex-start'
                 },
-                orderName: {
-                    fontSize: '16px',
-                    fontWeight: '600'
-                },
+                orderName: { fontSize: '16px', fontWeight: '600' },
                 badge: (type) => ({
                     display: 'inline-block',
                     padding: '2px 8px',
@@ -418,26 +572,19 @@
                     fontSize: '10px',
                     fontWeight: '600',
                     marginLeft: '8px',
-                    background: type === 'done' ? '#22c55e' : '#eab308',
-                    color: type === 'done' ? '#fff' : '#0f172a'
+                    background: type === 'done' ? '#22c55e' : type === 'paid' ? '#3b82f6' : '#eab308',
+                    color: type === 'done' ? '#fff' : type === 'paid' ? '#fff' : '#0f172a'
                 }),
                 orderMeta: {
                     display: 'flex',
-                    gap: '12px',
-                    fontSize: '12px',
+                    gap: '10px',
+                    fontSize: '11px',
                     color: '#64748b',
                     marginTop: '4px',
                     flexWrap: 'wrap'
                 },
-                orderTotal: {
-                    fontSize: '18px',
-                    fontWeight: 'bold',
-                    color: '#eab308'
-                },
-                orderBody: {
-                    padding: '0 16px 16px',
-                    borderTop: '1px solid #334155'
-                },
+                orderTotal: { fontSize: '18px', fontWeight: 'bold', color: '#eab308' },
+                orderBody: { padding: '0 16px 16px', borderTop: '1px solid #334155' },
                 packageItem: {
                     display: 'flex',
                     alignItems: 'center',
@@ -445,23 +592,10 @@
                     padding: '12px 0',
                     borderBottom: '1px solid #334155'
                 },
-                packageInfo: {
-                    flex: 1
-                },
-                packageName: {
-                    fontWeight: '600',
-                    fontSize: '14px'
-                },
-                packageDesc: {
-                    fontSize: '11px',
-                    color: '#64748b'
-                },
-                packagePrice: {
-                    color: '#eab308',
-                    fontWeight: '600',
-                    minWidth: '50px',
-                    textAlign: 'right'
-                },
+                packageInfo: { flex: 1 },
+                packageName: { fontWeight: '600', fontSize: '14px' },
+                packageDesc: { fontSize: '11px', color: '#64748b' },
+                packagePrice: { color: '#eab308', fontWeight: '600', minWidth: '50px', textAlign: 'right' },
                 photoInput: {
                     width: '70px',
                     padding: '6px 8px',
@@ -473,33 +607,34 @@
                     fontWeight: '600',
                     textAlign: 'center'
                 },
-                noPhoto: {
-                    fontSize: '10px',
-                    color: '#475569',
-                    width: '70px',
-                    textAlign: 'center'
-                },
+                noPhoto: { fontSize: '10px', color: '#475569', width: '70px', textAlign: 'center' },
                 buddyBox: {
                     background: '#0f172a',
                     padding: '10px 12px',
                     borderRadius: '6px',
                     marginTop: '12px'
                 },
-                buddyLabel: {
-                    fontSize: '10px',
-                    color: '#64748b',
-                    textTransform: 'uppercase',
-                    marginBottom: '4px'
-                },
+                buddyLabel: { fontSize: '10px', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' },
+                actionBtns: { display: 'flex', gap: '8px', marginTop: '12px' },
                 completeBtn: (done) => ({
-                    width: '100%',
-                    padding: '14px',
-                    marginTop: '12px',
+                    flex: 1,
+                    padding: '12px',
                     background: done ? '#475569' : '#22c55e',
                     color: '#fff',
                     border: 'none',
                     borderRadius: '8px',
-                    fontSize: '15px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                }),
+                paidBtn: (paid) => ({
+                    flex: 1,
+                    padding: '12px',
+                    background: paid ? '#1d4ed8' : '#0f172a',
+                    color: paid ? '#fff' : '#3b82f6',
+                    border: paid ? 'none' : '2px solid #3b82f6',
+                    borderRadius: '8px',
+                    fontSize: '14px',
                     fontWeight: '600',
                     cursor: 'pointer'
                 }),
@@ -509,12 +644,11 @@
                     padding: '16px',
                     border: '1px solid #334155'
                 },
-                emptyState: {
-                    textAlign: 'center',
-                    padding: '60px 20px',
-                    color: '#64748b'
-                }
+                emptyState: { textAlign: 'center', padding: '60px 20px', color: '#64748b' }
             };
+
+            const productTotals = getProductTotals();
+            const fulfillmentData = getFulfillmentData();
 
             return (
                 <div>
@@ -526,29 +660,47 @@
                             <button style={styles.btn} onClick={loadOrders} disabled={loading}>
                                 {loading ? '⏳' : '🔄'} {loading ? 'Loading...' : 'Refresh'}
                             </button>
+                            <button style={styles.btn} onClick={() => setShowProductTotals(true)}>
+                                📦 Order Totals
+                            </button>
+                            <button style={styles.btn} onClick={() => setShowFulfillment(true)}>
+                                📋 Fulfillment
+                            </button>
                             <button style={styles.btn} onClick={exportCSV}>
-                                📋 Export
+                                💾 Export
                             </button>
                             <button style={{...styles.btn, background: '#7f1d1d', color: '#fca5a5'}} onClick={clearData}>
-                                🗑️ Clear
+                                🗑️
                             </button>
                         </div>
                     </div>
 
                     {/* Stats */}
                     <div style={styles.statsBar}>
-                        {[
-                            { label: 'Total', value: stats.total },
-                            { label: 'Showing', value: stats.filtered },
-                            { label: 'Done', value: stats.completed },
-                            { label: 'Pending', value: stats.pending },
-                            { label: 'Revenue', value: `$${stats.revenue.toFixed(0)}` }
-                        ].map(s => (
-                            <div key={s.label} style={styles.stat}>
-                                <div style={styles.statValue}>{s.value}</div>
-                                <div style={styles.statLabel}>{s.label}</div>
-                            </div>
-                        ))}
+                        <div style={styles.stat}>
+                            <div style={styles.statValue}>{stats.filtered}</div>
+                            <div style={styles.statLabel}>Showing</div>
+                        </div>
+                        <div style={styles.stat}>
+                            <div style={styles.statValue}>{stats.completed}</div>
+                            <div style={styles.statLabel}>Shot</div>
+                        </div>
+                        <div style={styles.stat}>
+                            <div style={styles.statValue}>{stats.pending}</div>
+                            <div style={styles.statLabel}>Pending</div>
+                        </div>
+                        <div style={styles.stat}>
+                            <div style={styles.statValue}>${stats.revenue.toFixed(0)}</div>
+                            <div style={styles.statLabel}>Total</div>
+                        </div>
+                        <div style={styles.stat}>
+                            <div style={styles.statValueGreen}>${stats.collected.toFixed(0)}</div>
+                            <div style={styles.statLabel}>Collected</div>
+                        </div>
+                        <div style={styles.stat}>
+                            <div style={styles.statValueRed}>${stats.outstanding.toFixed(0)}</div>
+                            <div style={styles.statLabel}>Owed</div>
+                        </div>
                     </div>
 
                     {/* Filters */}
@@ -564,9 +716,15 @@
                         </select>
                         
                         <select style={styles.select} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                            <option value="all">All</option>
+                            <option value="all">All Status</option>
                             <option value="pending">Pending</option>
-                            <option value="completed">Done</option>
+                            <option value="completed">Shot</option>
+                        </select>
+
+                        <select style={styles.select} value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)}>
+                            <option value="all">All Payments</option>
+                            <option value="paid">Paid</option>
+                            <option value="unpaid">Unpaid</option>
                         </select>
                         
                         <input
@@ -612,9 +770,9 @@
                                         <div>
                                             <div>
                                                 <span style={styles.orderName}>{order.name}</span>
-                                                <span style={styles.badge(isCompleted(order.id) ? 'done' : 'pending')}>
-                                                    {isCompleted(order.id) ? '✓ Done' : 'Pending'}
-                                                </span>
+                                                {isCompleted(order.id) && <span style={styles.badge('done')}>✓ Shot</span>}
+                                                {isPaid(order.id) && <span style={styles.badge('paid')}>💵 Paid</span>}
+                                                {!isCompleted(order.id) && !isPaid(order.id) && <span style={styles.badge('pending')}>Pending</span>}
                                             </div>
                                             <div style={styles.orderMeta}>
                                                 <span>📅 {order.pictureDay || 'No date'}</span>
@@ -622,7 +780,10 @@
                                                 <span>📦 {order.packages.length}</span>
                                             </div>
                                         </div>
-                                        <div style={styles.orderTotal}>${order.orderTotal.toFixed(2)}</div>
+                                        <div style={{textAlign: 'right'}}>
+                                            <div style={styles.orderTotal}>${order.orderTotal.toFixed(2)}</div>
+                                            {isPaid(order.id) && <div style={{fontSize: '10px', color: '#22c55e'}}>PAID</div>}
+                                        </div>
                                     </div>
                                     
                                     {expandedOrder === order.id && (
@@ -667,12 +828,20 @@
                                                 </div>
                                             )}
                                             
-                                            <button
-                                                style={styles.completeBtn(isCompleted(order.id))}
-                                                onClick={() => toggleComplete(order.id)}
-                                            >
-                                                {isCompleted(order.id) ? '↩️ Mark Incomplete' : '✓ Mark Complete'}
-                                            </button>
+                                            <div style={styles.actionBtns}>
+                                                <button
+                                                    style={styles.completeBtn(isCompleted(order.id))}
+                                                    onClick={() => toggleComplete(order.id)}
+                                                >
+                                                    {isCompleted(order.id) ? '↩️ Unmark Shot' : '✓ Mark Shot'}
+                                                </button>
+                                                <button
+                                                    style={styles.paidBtn(isPaid(order.id))}
+                                                    onClick={() => togglePaid(order.id)}
+                                                >
+                                                    {isPaid(order.id) ? '💵 Paid' : '💵 Mark Paid'}
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -685,14 +854,19 @@
                                     .join(', ');
                                 
                                 return (
-                                    <div key={order.id} style={styles.deliveryCard}>
+                                    <div key={order.id} style={{...styles.deliveryCard, borderLeft: isPaid(order.id) ? '4px solid #22c55e' : '4px solid #ef4444'}}>
                                         <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px'}}>
                                             <div>
                                                 <div style={{fontSize: '16px', fontWeight: '600'}}>{order.name}</div>
                                                 <div style={{fontSize: '12px', color: '#64748b'}}>{order.platoon}</div>
                                             </div>
-                                            <div style={{fontSize: '22px', fontWeight: 'bold', color: '#eab308'}}>
-                                                ${order.orderTotal.toFixed(2)}
+                                            <div style={{textAlign: 'right'}}>
+                                                <div style={{fontSize: '22px', fontWeight: 'bold', color: isPaid(order.id) ? '#22c55e' : '#eab308'}}>
+                                                    ${order.orderTotal.toFixed(2)}
+                                                </div>
+                                                <div style={{fontSize: '11px', color: isPaid(order.id) ? '#22c55e' : '#ef4444', fontWeight: '600'}}>
+                                                    {isPaid(order.id) ? '✓ PAID' : 'COLLECT'}
+                                                </div>
                                             </div>
                                         </div>
                                         <div style={{fontSize: '12px', color: '#94a3b8'}}>
@@ -703,11 +877,72 @@
                                                 <span style={{color: '#eab308', fontWeight: '600'}}>Photos:</span> {photoNums}
                                             </div>
                                         )}
+                                        <button
+                                            style={{...styles.paidBtn(isPaid(order.id)), width: '100%', marginTop: '12px'}}
+                                            onClick={() => togglePaid(order.id)}
+                                        >
+                                            {isPaid(order.id) ? '💵 Paid' : '💵 Mark Paid'}
+                                        </button>
                                     </div>
                                 );
                             })
                         )}
                     </div>
+
+                    {/* Product Totals Modal */}
+                    {showProductTotals && (
+                        <div className="modal-overlay" onClick={() => setShowProductTotals(false)}>
+                            <div className="modal" onClick={e => e.stopPropagation()}>
+                                <div className="modal-header">
+                                    <div className="modal-title">📦 Products to Order</div>
+                                    <button className="modal-close" onClick={() => setShowProductTotals(false)}>×</button>
+                                </div>
+                                <div className="modal-body">
+                                    <p style={{color: '#64748b', fontSize: '13px', marginBottom: '16px'}}>
+                                        Based on {filteredOrders.length} filtered orders
+                                    </p>
+                                    {Object.keys(productTotals).sort().map(product => (
+                                        <div key={product} className="product-row">
+                                            <span className="product-name">{product}</span>
+                                            <span className="product-count">{productTotals[product]}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Fulfillment Modal */}
+                    {showFulfillment && (
+                        <div className="modal-overlay" onClick={() => setShowFulfillment(false)}>
+                            <div className="modal" onClick={e => e.stopPropagation()}>
+                                <div className="modal-header">
+                                    <div className="modal-title">📋 Fulfillment List</div>
+                                    <button className="modal-close" onClick={() => setShowFulfillment(false)}>×</button>
+                                </div>
+                                <div className="modal-body">
+                                    <button 
+                                        style={{...styles.btn, marginBottom: '16px', width: '100%', justifyContent: 'center'}}
+                                        onClick={exportFulfillment}
+                                    >
+                                        💾 Export Fulfillment CSV
+                                    </button>
+                                    {Object.keys(fulfillmentData).sort().map(product => (
+                                        <div key={product} className="fulfillment-section">
+                                            <div className="fulfillment-title">{product} ({fulfillmentData[product].length})</div>
+                                            {fulfillmentData[product].map((item, idx) => (
+                                                <div key={idx} className="fulfillment-item">
+                                                    <strong>{item.name}</strong>
+                                                    {item.photoNumber && <span className="fulfillment-photo"> — Photo #{item.photoNumber}</span>}
+                                                    {item.buddyName && <span style={{color: '#64748b'}}> (with {item.buddyName})</span>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
