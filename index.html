@@ -259,11 +259,11 @@
                         const text = answer.text || '';
                         const value = answer.answer || '';
 
-                        if (text.includes('Full Name')) name = value;
-                        else if (text.includes('Platoon')) platoon = value;
-                        else if (text.includes('Drill Sergeant')) drillSergeant = value;
-                        else if (text.includes('Picture Day')) pictureDay = value;
-                        else if (text.includes('packages you want')) {
+                        if (text.includes('Full Name') || text === 'Name') name = value;
+                        else if (text.includes('Platoon') || text === 'PLATOON') platoon = value;
+                        else if (text.includes('Drill Sergeant') || text === 'DRILL SERGEANT') drillSergeant = value;
+                        else if (text.includes('Picture Day') || text.includes('Date your taking pictures')) pictureDay = value;
+                        else if (text.includes('packages you want') || text === 'My Products') {
                             packages = Array.isArray(value) ? value : (value ? [value] : []);
                         }
                         else if (text.includes('Buddy')) buddyName = value;
@@ -275,7 +275,7 @@
                                 phone = value;
                             }
                         }
-                        else if (text.includes('custom request')) customRequest = value;
+                        else if (text.includes('custom request') || text.includes('Additional Comments')) customRequest = value;
                         else if (text.includes('Order Total')) orderTotal = parseFloat(value) || 0;
                         else if (text.includes('Graduate')) graduationDate = value;
                     });
@@ -313,7 +313,7 @@
                         graduationDate,
                         createdAt: sub.created_at
                     };
-                }).filter(o => o.name && o.packages.length > 0);
+                }).filter(o => o.name);
             };
 
             const loadOrders = async () => {
