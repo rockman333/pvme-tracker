@@ -281,6 +281,8 @@
                     });
 
                     const parsedPackages = packages.map(pkg => {
+                        // Make sure pkg is a string
+                        if (typeof pkg !== 'string') return null;
                         // Match "Package A", "Package G1", "A", "G1", etc.
                         const match = pkg.match(/Package\s*([A-Z]\d?)|^([A-Z]\d?)/i);
                         if (match) {
