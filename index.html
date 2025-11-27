@@ -160,27 +160,53 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback } = React;
 
+        // ============ FORM CONFIGURATIONS ============
+        const FORMS = {
+            'new_ait': {
+                name: 'New AIT Form',
+                formId: '252858215899071',
+                packages: {
+                    'A': { name: 'Package A', desc: '8×10 Class Group + 8×10 Individual', price: 25, needsPhoto: true, products: ['Class Group 8x10', 'Individual 8x10'] },
+                    'B': { name: 'Package B', desc: '8×10 Class Group', price: 20, needsPhoto: false, products: ['Class Group 8x10'] },
+                    'C': { name: 'Package C', desc: '8×10 Individual', price: 20, needsPhoto: true, products: ['Individual 8x10'] },
+                    'D': { name: 'Package D', desc: '8×10 Class Group (Buddy Shot)', price: 20, needsPhoto: true, products: ['Buddy Shot 8x10'] },
+                    'E': { name: 'Package E', desc: '5×7 Class Group', price: 15, needsPhoto: false, products: ['Class Group 5x7'] },
+                    'F': { name: 'Package F', desc: '5×7 Individual', price: 15, needsPhoto: true, products: ['Individual 5x7'] },
+                    'G1': { name: 'Package G1', desc: 'Mouse Pad', price: 15, needsPhoto: true, products: ['Mouse Pad'] },
+                    'G2': { name: 'Package G2', desc: 'Phone Socket Grip', price: 15, needsPhoto: true, products: ['Phone Socket Grip'] },
+                    'G3': { name: 'Package G3', desc: 'Dog Tag', price: 15, needsPhoto: true, products: ['Dog Tag'] },
+                    'G4': { name: 'Package G4', desc: 'Bag Tag (Single-Sided)', price: 15, needsPhoto: true, products: ['Bag Tag Single'] },
+                    'G5': { name: 'Package G5', desc: 'Bag Tag (Double-Sided)', price: 15, needsPhoto: true, products: ['Bag Tag Double'] },
+                    'G6': { name: 'Package G6', desc: '11oz Mug (Full Wrap)', price: 15, needsPhoto: true, products: ['Mug 11oz'] },
+                    'G7': { name: 'Package G7', desc: '14oz Deluxe Travel Mug', price: 30, needsPhoto: true, products: ['Travel Mug 14oz'] }
+                }
+            },
+            'old_ait': {
+                name: 'Old AIT Form',
+                formId: '253004946489061',
+                packages: {
+                    'A': { name: 'Package A', desc: '8×12 Class Group + 8×10 Individual', price: 25, needsPhoto: true, products: ['Class Group 8x12', 'Individual 8x10'] },
+                    'B': { name: 'Package B', desc: '8×12 Class Group', price: 20, needsPhoto: false, products: ['Class Group 8x12'] },
+                    'C': { name: 'Package C', desc: '8×10 Individual', price: 20, needsPhoto: true, products: ['Individual 8x10'] },
+                    'D': { name: 'Package D', desc: '8×10 Buddy Shot', price: 20, needsPhoto: true, products: ['Buddy Shot 8x10'] },
+                    'G1': { name: 'Package G1', desc: 'Mouse Pad', price: 15, needsPhoto: true, products: ['Mouse Pad'] },
+                    'G2': { name: 'Package G2', desc: 'Phone Socket Grip', price: 15, needsPhoto: true, products: ['Phone Socket Grip'] },
+                    'G3': { name: 'Package G3', desc: 'Dog Tag (Photo)', price: 15, needsPhoto: true, products: ['Dog Tag'] },
+                    'G4': { name: 'Package G4', desc: 'Bag Tag (3) Double-Sided', price: 30, needsPhoto: true, products: ['Bag Tag', 'Bag Tag', 'Bag Tag'] },
+                    'G5': { name: 'Package G5', desc: 'Bag Tag (1) Double-Sided', price: 12, needsPhoto: true, products: ['Bag Tag'] },
+                    'G6': { name: 'Package G6', desc: '11oz Mug (Full Wrap)', price: 15, needsPhoto: true, products: ['Mug 11oz'] },
+                    'G7': { name: 'Package G7', desc: '14oz Deluxe Travel Mug', price: 30, needsPhoto: true, products: ['Travel Mug 14oz'] }
+                }
+            }
+        };
+
         const CONFIG = {
             apiKey: 'af081af2c96a9cbb9b8e122986b113b5',
-            formId: '253004946489061',
             taxRate: 0.06
         };
 
-        const PACKAGES = {
-            'A': { name: 'Package A', desc: '8×12 Class Group + 8×10 Individual', price: 25, needsPhoto: true, products: ['Class Group 8x12', 'Individual 8x10'] },
-            'B': { name: 'Package B', desc: '8×12 Class Group', price: 20, needsPhoto: false, products: ['Class Group 8x12'] },
-            'C': { name: 'Package C', desc: '8×10 Individual', price: 20, needsPhoto: true, products: ['Individual 8x10'] },
-            'D': { name: 'Package D', desc: '8×10 Buddy Shot', price: 20, needsPhoto: true, products: ['Buddy Shot 8x10'] },
-            'G1': { name: 'Package G1', desc: 'Mouse Pad', price: 15, needsPhoto: true, products: ['Mouse Pad'] },
-            'G2': { name: 'Package G2', desc: 'Phone Socket Grip', price: 15, needsPhoto: true, products: ['Phone Socket Grip'] },
-            'G3': { name: 'Package G3', desc: 'Dog Tag (Photo)', price: 15, needsPhoto: true, products: ['Dog Tag'] },
-            'G4': { name: 'Package G4', desc: 'Bag Tag (3) Double-Sided', price: 30, needsPhoto: true, products: ['Bag Tag', 'Bag Tag', 'Bag Tag'] },
-            'G5': { name: 'Package G5', desc: 'Bag Tag (1) Double-Sided', price: 12, needsPhoto: true, products: ['Bag Tag'] },
-            'G6': { name: 'Package G6', desc: '11oz Mug (Full Wrap)', price: 15, needsPhoto: true, products: ['Mug 11oz'] },
-            'G7': { name: 'Package G7', desc: '14oz Deluxe Travel Mug', price: 30, needsPhoto: true, products: ['Travel Mug 14oz'] }
-        };
-
         function App() {
+            const [selectedForm, setSelectedForm] = useState('new_ait');
             const [orders, setOrders] = useState([]);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
@@ -220,7 +246,8 @@
                 }
             }, [localData]);
 
-            const parseOrders = (submissions) => {
+            const parseOrders = (submissions, formKey) => {
+                const PACKAGES = FORMS[formKey].packages;
                 return submissions.map(sub => {
                     const answers = sub.answers || {};
                     let name = '', platoon = '', drillSergeant = '', pictureDay = '',
@@ -290,14 +317,16 @@
                 setLoading(true);
                 setError(null);
                 
+                const formConfig = FORMS[selectedForm];
+                
                 try {
                     const response = await fetch(
-                        `https://api.jotform.com/form/${CONFIG.formId}/submissions?apiKey=${CONFIG.apiKey}&limit=1000&filter=%7B%22status%22%3A%22ACTIVE%22%7D`
+                        `https://api.jotform.com/form/${formConfig.formId}/submissions?apiKey=${CONFIG.apiKey}&limit=1000&filter=%7B%22status%22%3A%22ACTIVE%22%7D`
                     );
                     const data = await response.json();
                     
                     if (data.responseCode === 200) {
-                        const parsed = parseOrders(data.content);
+                        const parsed = parseOrders(data.content, selectedForm);
                         setOrders(parsed);
                     } else {
                         setError('Failed to load: ' + (data.message || 'Unknown error'));
@@ -311,7 +340,7 @@
 
             useEffect(() => {
                 loadOrders();
-            }, []);
+            }, [selectedForm]);
 
             const filteredOrders = orders.filter(order => {
                 if (dayFilter !== 'all' && order.pictureDay !== dayFilter) return false;
@@ -726,8 +755,30 @@
                 <div>
                     {/* Header */}
                     <div style={styles.header}>
-                        <div style={styles.title}>📸 PVME Picture Day Tracker</div>
-                        <div style={styles.subtitle}>Pro Vision Multimedia Enterprises — "We Got You"</div>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px'}}>
+                            <div>
+                                <div style={styles.title}>📸 PVME Picture Day Tracker</div>
+                                <div style={styles.subtitle}>Pro Vision Multimedia Enterprises — "We Got You"</div>
+                            </div>
+                            <select 
+                                value={selectedForm} 
+                                onChange={e => setSelectedForm(e.target.value)}
+                                style={{
+                                    background: '#0f172a',
+                                    color: '#eab308',
+                                    border: '2px solid #eab308',
+                                    padding: '10px 14px',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                {Object.keys(FORMS).map(key => (
+                                    <option key={key} value={key}>{FORMS[key].name}</option>
+                                ))}
+                            </select>
+                        </div>
                         <div style={styles.btnGroup}>
                             <button style={styles.btn} onClick={loadOrders} disabled={loading}>
                                 {loading ? '⏳' : '🔄'} {loading ? 'Loading...' : 'Refresh'}
@@ -911,7 +962,7 @@
                                                     style={styles.paidBtn(isPaid(order.id))}
                                                     onClick={() => togglePaid(order.id)}
                                                 >
-                                                    {isPaid(order.id) ? '💵 Paid' : '💵 Mark Paid'}
+                                                    {isPaid(order.id) ? '↩️ Undo Paid' : '💵 Mark Paid'}
                                                 </button>
                                             </div>
                                         </div>
@@ -953,7 +1004,7 @@
                                             style={{...styles.paidBtn(isPaid(order.id)), width: '100%', marginTop: '12px'}}
                                             onClick={() => togglePaid(order.id)}
                                         >
-                                            {isPaid(order.id) ? '💵 Paid' : '💵 Mark Paid'}
+                                            {isPaid(order.id) ? '↩️ Undo Paid' : '💵 Mark Paid'}
                                         </button>
                                     </div>
                                 );
