@@ -281,10 +281,13 @@
                     });
 
                     const parsedPackages = packages.map(pkg => {
-                        const match = pkg.match(/^([A-Z]\d?)/);
+                        // Match "Package A", "Package G1", "A", "G1", etc.
+                        const match = pkg.match(/Package\s*([A-Z]\d?)|^([A-Z]\d?)/i);
                         if (match) {
-                            const code = match[1];
-                            return { code, raw: pkg, ...PACKAGES[code] };
+                            const code = (match[1] || match[2]).toUpperCase();
+                            if (PACKAGES[code]) {
+                                return { code, raw: pkg, ...PACKAGES[code] };
+                            }
                         }
                         return null;
                     }).filter(p => p && p.name);
