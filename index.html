@@ -264,7 +264,17 @@
                         else if (text.includes('Drill Sergeant') || text === 'DRILL SERGEANT') drillSergeant = value;
                         else if (text.includes('Picture Day') || text.includes('Date your taking pictures')) pictureDay = value;
                         else if (text.includes('packages you want') || text === 'My Products') {
-                            packages = Array.isArray(value) ? value : (value ? [value] : []);
+                            // Handle different formats: array, string, or object
+                            if (Array.isArray(value)) {
+                                packages = value;
+                            } else if (typeof value === 'string' && value) {
+                                packages = [value];
+                            } else if (typeof value === 'object' && value !== null) {
+                                // If it's an object, try to extract values
+                                packages = Object.values(value).filter(v => typeof v === 'string');
+                            } else {
+                                packages = [];
+                            }
                         }
                         else if (text.includes('Buddy')) buddyName = value;
                         else if (text.includes('Email')) email = value;
@@ -280,19 +290,25 @@
                         else if (text.includes('Graduate')) graduationDate = value;
                     });
 
-                    const parsedPackages = packages.map(pkg => {
-                        // Make sure pkg is a string
-                        if (typeof pkg !== 'string') return null;
-                        // Match "Package A", "Package G1", "A", "G1", etc.
-                        const match = pkg.match(/Package\s*([A-Z]\d?)|^([A-Z]\d?)/i);
-                        if (match) {
-                            const code = (match[1] || match[2]).toUpperCase();
-                            if (PACKAGES[code]) {
-                                return { code, raw: pkg, ...PACKAGES[code] };
+                    let parsedPackages = [];
+                    try {
+                        parsedPackages = packages.map(pkg => {
+                            // Make sure pkg is a string
+                            if (typeof pkg !== 'string') return null;
+                            // Match "Package A", "Package G1", "A", "G1", etc.
+                            const match = pkg.match(/Package\s*([A-Z]\d?)|^([A-Z]\d?)/i);
+                            if (match) {
+                                const code = (match[1] || match[2]).toUpperCase();
+                                if (PACKAGES[code]) {
+                                    return { code, raw: pkg, ...PACKAGES[code] };
+                                }
                             }
-                        }
-                        return null;
-                    }).filter(p => p && p.name);
+                            return null;
+                        }).filter(p => p && p.name);
+                    } catch (e) {
+                        console.error('Error parsing packages:', e, packages);
+                        parsedPackages = [];
+                    }
 
                     const subtotal = parsedPackages.reduce((sum, p) => sum + (p.price || 0), 0);
                     const tax = subtotal * CONFIG.taxRate;
