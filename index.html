@@ -206,6 +206,32 @@
         };
 
         function App() {
+            const [isAuthenticated, setIsAuthenticated] = useState(() => {
+                // Check if already authenticated this session
+                return sessionStorage.getItem('pvme_authenticated') === 'true';
+            });
+            const [passwordInput, setPasswordInput] = useState('');
+            const [passwordError, setPasswordError] = useState(false);
+            
+            const CORRECT_PASSWORD = 'Scout95**';
+            
+            const handleLogin = () => {
+                if (passwordInput === CORRECT_PASSWORD) {
+                    setIsAuthenticated(true);
+                    sessionStorage.setItem('pvme_authenticated', 'true');
+                    setPasswordError(false);
+                } else {
+                    setPasswordError(true);
+                    setPasswordInput('');
+                }
+            };
+            
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    handleLogin();
+                }
+            };
+            
             const [selectedForm, setSelectedForm] = useState('new_ait');
             const [orders, setOrders] = useState([]);
             const [loading, setLoading] = useState(true);
@@ -227,6 +253,7 @@
             const [platoonFilter, setPlatoonFilter] = useState('all');
             const [statusFilter, setStatusFilter] = useState('all');
             const [paymentFilter, setPaymentFilter] = useState('all');
+            const [photoTypeFilter, setPhotoTypeFilter] = useState('all');
             const [searchQuery, setSearchQuery] = useState('');
             
             const [localData, setLocalData] = useState(() => {
@@ -386,6 +413,20 @@
                 if (paymentFilter === 'paid' && !isPaid) return false;
                 if (paymentFilter === 'unpaid' && isPaid) return false;
                 if (searchQuery && !order.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+                
+                // Photo type filter
+                if (photoTypeFilter !== 'all') {
+                    const hasPhotoType = order.packages.some(pkg => {
+                        const code = pkg.code;
+                        if (photoTypeFilter === 'individual') return ['A', 'C', 'F'].includes(code);
+                        if (photoTypeFilter === 'buddy') return code === 'D';
+                        if (photoTypeFilter === 'class') return ['A', 'B', 'E'].includes(code);
+                        if (photoTypeFilter === 'products') return code.startsWith('G');
+                        return false;
+                    });
+                    if (!hasPhotoType) return false;
+                }
+                
                 return true;
             }).sort((a, b) => {
                 const nameA = (a.name || '').toString();
@@ -793,6 +834,76 @@
             const productTotals = getProductTotals();
             const fulfillmentData = getFulfillmentData();
 
+            // Login Screen
+            if (!isAuthenticated) {
+                return (
+                    <div style={{
+                        minHeight: '100vh',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: '#0f172a',
+                        padding: '20px'
+                    }}>
+                        <div style={{
+                            background: '#1e293b',
+                            padding: '40px',
+                            borderRadius: '16px',
+                            textAlign: 'center',
+                            maxWidth: '400px',
+                            width: '100%',
+                            border: '1px solid #334155'
+                        }}>
+                            <div style={{fontSize: '48px', marginBottom: '16px'}}>📸</div>
+                            <h1 style={{fontSize: '24px', marginBottom: '8px', color: '#eab308'}}>PVME Tracker</h1>
+                            <p style={{color: '#64748b', marginBottom: '24px'}}>Enter password to continue</p>
+                            
+                            <input
+                                type="password"
+                                value={passwordInput}
+                                onChange={e => setPasswordInput(e.target.value)}
+                                onKeyPress={handleKeyPress}
+                                placeholder="Password"
+                                style={{
+                                    width: '100%',
+                                    padding: '14px',
+                                    background: '#0f172a',
+                                    border: passwordError ? '2px solid #ef4444' : '2px solid #334155',
+                                    borderRadius: '8px',
+                                    color: '#fff',
+                                    fontSize: '16px',
+                                    textAlign: 'center',
+                                    marginBottom: '16px'
+                                }}
+                            />
+                            
+                            {passwordError && (
+                                <p style={{color: '#ef4444', fontSize: '14px', marginBottom: '16px'}}>
+                                    Incorrect password. Try again.
+                                </p>
+                            )}
+                            
+                            <button
+                                onClick={handleLogin}
+                                style={{
+                                    width: '100%',
+                                    padding: '14px',
+                                    background: '#eab308',
+                                    color: '#0f172a',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    fontSize: '16px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Enter
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+            
             return (
                 <div>
                     {/* Header */}
@@ -904,6 +1015,44 @@
                             <button style={styles.viewBtn(view === 'shoot')} onClick={() => setView('shoot')}>Shoot</button>
                             <button style={styles.viewBtn(view === 'delivery')} onClick={() => setView('delivery')}>Delivery</button>
                         </div>
+                    </div>
+
+                    {/* Photo Type Filter Buttons */}
+                    <div style={{
+                        display: 'flex',
+                        gap: '8px',
+                        padding: '12px 16px',
+                        background: '#0f172a',
+                        borderBottom: '1px solid #334155',
+                        overflowX: 'auto',
+                        flexWrap: 'wrap'
+                    }}>
+                        <span style={{color: '#64748b', fontSize: '12px', alignSelf: 'center', marginRight: '8px'}}>Photo Type:</span>
+                        {[
+                            { key: 'all', label: '📷 All' },
+                            { key: 'individual', label: '👤 Individual' },
+                            { key: 'buddy', label: '👥 Buddy' },
+                            { key: 'class', label: '🎓 Class Group' },
+                            { key: 'products', label: '🎁 Products' }
+                        ].map(type => (
+                            <button
+                                key={type.key}
+                                onClick={() => setPhotoTypeFilter(type.key)}
+                                style={{
+                                    padding: '8px 14px',
+                                    background: photoTypeFilter === type.key ? '#eab308' : '#1e293b',
+                                    color: photoTypeFilter === type.key ? '#0f172a' : '#94a3b8',
+                                    border: '1px solid #334155',
+                                    borderRadius: '20px',
+                                    fontSize: '13px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap'
+                                }}
+                            >
+                                {type.label}
+                            </button>
+                        ))}
                     </div>
 
                     {/* Error */}
