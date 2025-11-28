@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -260,7 +259,20 @@
                         const text = answer.text || '';
                         const value = answer.answer || '';
 
-                        if (text.includes('Full Name') || text === 'Name') name = value;
+                        if (text.includes('Full Name') || text === 'Name') {
+                            // Handle name as string or object (first/last name fields)
+                            if (typeof value === 'string') {
+                                name = value;
+                            } else if (typeof value === 'object' && value !== null) {
+                                // Combine first and last name if it's an object
+                                const first = value.first || value.firstName || '';
+                                const last = value.last || value.lastName || '';
+                                name = `${first} ${last}`.trim();
+                                if (!name) {
+                                    name = Object.values(value).filter(v => typeof v === 'string').join(' ').trim();
+                                }
+                            }
+                        }
                         else if (text.includes('Platoon') || text === 'PLATOON') platoon = value;
                         else if (text.includes('Drill Sergeant') || text === 'DRILL SERGEANT') drillSergeant = value;
                         else if (text.includes('Picture Day') || text.includes('Date your taking pictures')) pictureDay = value;
@@ -375,7 +387,11 @@
                 if (paymentFilter === 'unpaid' && isPaid) return false;
                 if (searchQuery && !order.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
                 return true;
-            }).sort((a, b) => a.name.localeCompare(b.name));
+            }).sort((a, b) => {
+                const nameA = (a.name || '').toString();
+                const nameB = (b.name || '').toString();
+                return nameA.localeCompare(nameB);
+            });
 
             const pictureDays = [...new Set(orders.map(o => o.pictureDay).filter(d => d))].sort();
             const platoons = [...new Set(orders.map(o => o.platoon).filter(p => p))].sort();
@@ -516,7 +532,11 @@
 
                 // Sort each product's list by name
                 Object.keys(byProduct).forEach(product => {
-                    byProduct[product].sort((a, b) => a.name.localeCompare(b.name));
+                    byProduct[product].sort((a, b) => {
+                        const nameA = (a.name || '').toString();
+                        const nameB = (b.name || '').toString();
+                        return nameA.localeCompare(nameB);
+                    });
                 });
 
                 return byProduct;
