@@ -332,6 +332,7 @@
 
                     let parsedPackages = [];
                     try {
+                        const seenCodes = new Set();
                         parsedPackages = packages.map(pkg => {
                             // Make sure pkg is a string
                             if (typeof pkg !== 'string') return null;
@@ -339,6 +340,9 @@
                             const match = pkg.match(/Package\s*([A-Z]\d?)|^([A-Z]\d?)/i);
                             if (match) {
                                 const code = (match[1] || match[2]).toUpperCase();
+                                // Skip if we've already seen this package code
+                                if (seenCodes.has(code)) return null;
+                                seenCodes.add(code);
                                 if (PACKAGES[code]) {
                                     return { code, raw: pkg, ...PACKAGES[code] };
                                 }
