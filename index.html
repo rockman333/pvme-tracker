@@ -257,6 +257,8 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [editingPriceId, setEditingPriceId] = useState(null);
             const [editingPriceValue, setEditingPriceValue] = useState('');
+            const [addItemOrderId, setAddItemOrderId] = useState(null);
+            const [showAddItemModal, setShowAddItemModal] = useState(false);
             
             const [localData, setLocalData] = useState(() => {
                 try {
@@ -504,7 +506,7 @@
                             phone: reviewPhone,
                             name: reviewOrder.name,
                             reviewLink: GOOGLE_REVIEW_LINK,
-                            message: `Thank you for choosing us! Please give us a review: ${GOOGLE_REVIEW_LINK}`
+                            message: `We appreciate a review: ${GOOGLE_REVIEW_LINK} . Thank you for trusting us.`
                         })
                     });
                     
@@ -575,16 +577,93 @@
                 if (override) {
                     return override.total;
                 }
+                // Include added items in total
+                const addedItems = getAddedItems(order.id);
+                if (addedItems.length > 0) {
+                    const addedSubtotal = addedItems.reduce((sum, item) => sum + item.price, 0);
+                    const addedTax = addedSubtotal * CONFIG.taxRate;
+                    return order.orderTotal + addedSubtotal + addedTax;
+                }
                 return order.orderTotal;
+            };
+            
+            // Added items functions
+            const getAddedItems = (orderId) => {
+                return localData[orderId]?.addedItems || [];
+            };
+            
+            const addItemToOrder = (orderId, packageCode) => {
+                const PACKAGES = FORMS[selectedForm].packages;
+                const pkg = PACKAGES[packageCode];
+                if (!pkg) return;
+                
+                const newItem = {
+                    code: packageCode,
+                    ...pkg,
+                    addedOnSpot: true,
+                    addedAt: new Date().toISOString()
+                };
+                
+                setLocalData(prev => ({
+                    ...prev,
+                    [orderId]: {
+                        ...prev[orderId],
+                        addedItems: [...(prev[orderId]?.addedItems || []), newItem]
+                    }
+                }));
+                
+                setShowAddItemModal(false);
+                setAddItemOrderId(null);
+            };
+            
+            const removeAddedItem = (orderId, index) => {
+                setLocalData(prev => {
+                    const currentItems = prev[orderId]?.addedItems || [];
+                    const newItems = currentItems.filter((_, i) => i !== index);
+                    return {
+                        ...prev,
+                        [orderId]: {
+                            ...prev[orderId],
+                            addedItems: newItems
+                        }
+                    };
+                });
+            };
+            
+            const getAddedItemPhotoNumber = (orderId, index) => {
+                return localData[orderId]?.addedItemPhotos?.[index] || '';
+            };
+            
+            const setAddedItemPhotoNumber = (orderId, index, value) => {
+                setLocalData(prev => ({
+                    ...prev,
+                    [orderId]: {
+                        ...prev[orderId],
+                        addedItemPhotos: {
+                            ...(prev[orderId]?.addedItemPhotos || {}),
+                            [index]: value
+                        }
+                    }
+                }));
             };
 
             // Calculate product totals
             const getProductTotals = () => {
                 const totals = {};
                 filteredOrders.forEach(order => {
+                    // Original packages
                     order.packages.forEach(pkg => {
                         if (pkg.products) {
                             pkg.products.forEach(product => {
+                                totals[product] = (totals[product] || 0) + 1;
+                            });
+                        }
+                    });
+                    // Added items
+                    const addedItems = getAddedItems(order.id);
+                    addedItems.forEach(item => {
+                        if (item.products) {
+                            item.products.forEach(product => {
                                 totals[product] = (totals[product] || 0) + 1;
                             });
                         }
@@ -598,6 +677,7 @@
                 const byProduct = {};
                 
                 filteredOrders.forEach(order => {
+                    // Original packages
                     order.packages.forEach(pkg => {
                         if (pkg.products) {
                             const photoNum = getPhotoNumber(order.id, pkg.code);
@@ -610,6 +690,24 @@
                                     photoNumber: photoNum,
                                     packageCode: pkg.code,
                                     buddyName: pkg.code === 'D' ? order.buddyName : null
+                                });
+                            });
+                        }
+                    });
+                    // Added items
+                    const addedItems = getAddedItems(order.id);
+                    addedItems.forEach((item, idx) => {
+                        if (item.products) {
+                            const photoNum = getAddedItemPhotoNumber(order.id, idx);
+                            item.products.forEach(product => {
+                                if (!byProduct[product]) {
+                                    byProduct[product] = [];
+                                }
+                                byProduct[product].push({
+                                    name: order.name + ' (ADDED)',
+                                    photoNumber: photoNum,
+                                    packageCode: item.code,
+                                    buddyName: item.code === 'D' ? order.buddyName : null
                                 });
                             });
                         }
@@ -1172,6 +1270,79 @@
                                                 </div>
                                             ))}
                                             
+                                            {/* Added Items Section */}
+                                            {getAddedItems(order.id).length > 0 && (
+                                                <div style={{marginTop: '12px', paddingTop: '12px', borderTop: '2px dashed #eab308'}}>
+                                                    <div style={{fontSize: '11px', color: '#eab308', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase'}}>➕ Added On-Site</div>
+                                                    {getAddedItems(order.id).map((item, idx) => (
+                                                        <div key={idx} style={{...styles.packageItem, background: '#1a2e1a', border: '1px solid #22c55e'}}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={!!getAddedItemPhotoNumber(order.id, idx)}
+                                                                onChange={() => {}}
+                                                            />
+                                                            <div style={styles.packageInfo}>
+                                                                <div style={styles.packageName}>{item.name} <span style={{color: '#22c55e', fontSize: '10px'}}>(ADDED)</span></div>
+                                                                <div style={styles.packageDesc}>{item.desc}</div>
+                                                            </div>
+                                                            <div style={styles.packagePrice}>${item.price}</div>
+                                                            {item.needsPhoto ? (
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="#"
+                                                                    style={styles.photoInput}
+                                                                    value={getAddedItemPhotoNumber(order.id, idx)}
+                                                                    onChange={e => setAddedItemPhotoNumber(order.id, idx, e.target.value)}
+                                                                />
+                                                            ) : (
+                                                                <div style={styles.noPhoto}>No photo</div>
+                                                            )}
+                                                            <button
+                                                                onClick={() => removeAddedItem(order.id, idx)}
+                                                                style={{
+                                                                    background: '#7f1d1d',
+                                                                    color: '#fca5a5',
+                                                                    border: 'none',
+                                                                    borderRadius: '4px',
+                                                                    padding: '4px 8px',
+                                                                    fontSize: '10px',
+                                                                    cursor: 'pointer',
+                                                                    marginLeft: '8px'
+                                                                }}
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            
+                                            {/* Add Item Button */}
+                                            <button
+                                                onClick={() => {
+                                                    setAddItemOrderId(order.id);
+                                                    setShowAddItemModal(true);
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '12px',
+                                                    marginTop: '12px',
+                                                    background: '#1e3a5f',
+                                                    color: '#60a5fa',
+                                                    border: '2px dashed #3b82f6',
+                                                    borderRadius: '8px',
+                                                    fontSize: '14px',
+                                                    fontWeight: '600',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '8px'
+                                                }}
+                                            >
+                                                ➕ Add Item to Order
+                                            </button>
+                                            
                                             {order.buddyName && (
                                                 <div style={styles.buddyBox}>
                                                     <div style={styles.buddyLabel}>Buddy / DS Name</div>
@@ -1417,7 +1588,7 @@
                                     />
                                     
                                     <p style={{fontSize: '12px', color: '#64748b', marginBottom: '20px'}}>
-                                        They'll receive: "Thank you for choosing us! Please give us a review: [link]"
+                                        They'll receive: "We appreciate a review: [link] . Thank you for trusting us."
                                     </p>
                                     
                                     <div style={{display: 'flex', gap: '10px'}}>
@@ -1456,6 +1627,53 @@
                                             {sendingReview ? '⏳ Sending...' : '📱 Send Review Request'}
                                         </button>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Add Item Modal */}
+                    {showAddItemModal && addItemOrderId && (
+                        <div className="modal-overlay" onClick={() => { setShowAddItemModal(false); setAddItemOrderId(null); }}>
+                            <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '500px'}}>
+                                <div className="modal-header">
+                                    <div className="modal-title">➕ Add Item to Order</div>
+                                    <button className="modal-close" onClick={() => { setShowAddItemModal(false); setAddItemOrderId(null); }}>×</button>
+                                </div>
+                                <div className="modal-body">
+                                    <p style={{marginBottom: '16px', color: '#94a3b8'}}>
+                                        Select a package to add:
+                                    </p>
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                                        {Object.entries(FORMS[selectedForm].packages).map(([code, pkg]) => (
+                                            <button
+                                                key={code}
+                                                onClick={() => addItemToOrder(addItemOrderId, code)}
+                                                style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    padding: '14px 16px',
+                                                    background: '#0f172a',
+                                                    border: '1px solid #334155',
+                                                    borderRadius: '8px',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left'
+                                                }}
+                                            >
+                                                <div>
+                                                    <div style={{color: '#e2e8f0', fontWeight: '600', fontSize: '14px'}}>{pkg.name}</div>
+                                                    <div style={{color: '#64748b', fontSize: '12px'}}>{pkg.desc}</div>
+                                                </div>
+                                                <div style={{color: '#eab308', fontWeight: 'bold', fontSize: '16px'}}>
+                                                    ${pkg.price}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p style={{marginTop: '16px', color: '#64748b', fontSize: '12px'}}>
+                                        * 6% tax will be added automatically
+                                    </p>
                                 </div>
                             </div>
                         </div>
