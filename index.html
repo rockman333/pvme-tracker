@@ -416,6 +416,9 @@
             };
 
             const filteredOrders = orders.filter(order => {
+                // Skip hidden orders
+                if (localData[order.id]?.hidden) return false;
+                
                 if (dayFilter !== 'all' && getDisplayPictureDay(order) !== dayFilter) return false;
                 if (platoonFilter !== 'all' && order.platoon !== platoonFilter) return false;
                 const isCompleted = localData[order.id]?.completed;
@@ -633,6 +636,61 @@
                     };
                 });
             };
+            
+            // Hide/delete an order from view (doesn't delete from Jotform)
+            const hideOrder = (orderId) => {
+                if (confirm('Hide this order from the tracker? (This won\'t delete it from Jotform)')) {
+                    setLocalData(prev => ({
+                        ...prev,
+                        [orderId]: {
+                            ...prev[orderId],
+                            hidden: true
+                        }
+                    }));
+                }
+            };
+            
+            // Delete order from BOTH local AND Jotform
+            const deleteOrder = async (orderId, orderName) => {
+                if (confirm(`DELETE "${orderName}" permanently?\n\nThis will:\n• Remove from this tracker\n• Delete from Jotform\n\nThis cannot be undone!`)) {
+                    try {
+                        // Delete from Jotform
+                        const response = await fetch(
+                            `https://api.jotform.com/submission/${orderId}?apiKey=${CONFIG.apiKey}`,
+                            { method: 'DELETE' }
+                        );
+                        const data = await response.json();
+                        
+                        if (data.responseCode === 200) {
+                            // Remove from local state
+                            setOrders(prev => prev.filter(o => o.id !== orderId));
+                            // Clean up local data
+                            setLocalData(prev => {
+                                const newData = { ...prev };
+                                delete newData[orderId];
+                                return newData;
+                            });
+                            alert('Order deleted successfully!');
+                        } else {
+                            alert('Failed to delete from Jotform: ' + (data.message || 'Unknown error'));
+                        }
+                    } catch (err) {
+                        alert('Error deleting: ' + err.message);
+                    }
+                }
+            };
+            
+            const unhideOrder = (orderId) => {
+                setLocalData(prev => ({
+                    ...prev,
+                    [orderId]: {
+                        ...prev[orderId],
+                        hidden: false
+                    }
+                }));
+            };
+            
+            const isHidden = (orderId) => localData[orderId]?.hidden || false;
             
             const getAddedItemPhotoNumber = (orderId, index) => {
                 return localData[orderId]?.addedItemPhotos?.[index] || '';
@@ -1462,6 +1520,38 @@
                                                     onClick={() => togglePaid(order.id)}
                                                 >
                                                     {isPaid(order.id) ? '↩️ Undo Paid' : '💵 Mark Paid'}
+                                                </button>
+                                            </div>
+                                            <div style={{display: 'flex', gap: '8px', marginTop: '8px'}}>
+                                                <button
+                                                    style={{
+                                                        flex: 1,
+                                                        padding: '10px',
+                                                        background: '#374151',
+                                                        color: '#9ca3af',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        fontSize: '12px',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onClick={() => hideOrder(order.id)}
+                                                >
+                                                    👁️ Hide (Local Only)
+                                                </button>
+                                                <button
+                                                    style={{
+                                                        flex: 1,
+                                                        padding: '10px',
+                                                        background: '#7f1d1d',
+                                                        color: '#fca5a5',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        fontSize: '12px',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onClick={() => deleteOrder(order.id, order.name)}
+                                                >
+                                                    🗑️ Delete (Permanent)
                                                 </button>
                                             </div>
                                         </div>
