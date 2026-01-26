@@ -999,7 +999,7 @@
                 display: 'flex',
                 borderRadius: '6px',
                 overflow: 'hidden',
-                border: '1px solid #475569'
+                border: '1px solid #0f172a'
             },
             viewBtn: (active) => ({
                 padding: '8px 12px',
@@ -1014,7 +1014,7 @@
             orderCard: (completed) => ({
                 background: '#1e293b',
                 borderRadius: '12px',
-                border: `2px solid ${completed ? '#4ade80' : '#475569'}`,
+                border: completed ? '2px solid #4ade80' : '1px solid #0f172a',
                 opacity: completed ? 0.8 : 1,
                 overflow: 'hidden'
             }),
@@ -1304,7 +1304,7 @@
                                 padding: '8px 14px',
                                 background: photoTypeFilter === type.key ? '#fbbf24' : '#334155',
                                 color: photoTypeFilter === type.key ? '#0f172a' : '#e2e8f0',
-                                border: photoTypeFilter === type.key ? '2px solid #fbbf24' : '2px solid #475569',
+                                border: 'none',
                                 borderRadius: '20px',
                                 fontSize: '13px',
                                 fontWeight: '600',
